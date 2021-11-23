@@ -1,0 +1,458 @@
+@ MAIN
+get:App:source:main:(():{
+    set:draw:(get:App:draw)
+	set:width:(480)
+	set:height:(640)
+    get:this:create:(():{
+		@ CREATE
+		get:draw:width:(get:width)
+		get:draw:height:(get:height)
+		get:draw:scale(get:width, get:height)
+		do:foreach(get:draw:input:key:each):((key):{
+			get:draw:input:key:clear(get:key:id)
+		})
+		do:foreach(get:draw:input:pad:each):((pad):{
+			get:draw:input:pad:clear(get:pad:id)
+		})
+		get:draw:initialize:(true)
+		get:draw:playable:(false)
+		get:draw:value:score:(0)
+        @ BACKGROUND
+		get:draw:item:background:(new:Object())
+		get:draw:item:background:color:(get:Color:value(0xBB9966))
+		get:draw:item:background:render:(():{
+			get:draw:fill(get:this:color):rectangle(0, 0, get:draw:width, get:draw:height)
+		})
+        @ ENVIRONEMT
+		get:draw:item:environment:(new:Object())
+		get:draw:item:environment:left:(get:draw:colorset())
+		get:draw:item:environment:left:id:(0)
+		get:draw:item:environment:left:size:({ width: 16, height: 16 })
+		get:draw:item:environment:left:source(get:draw:value:environment)
+		get:draw:item:environment:left:update()
+		get:draw:item:environment:right:(get:draw:colorset())
+		get:draw:item:environment:right:id:(1)
+		get:draw:item:environment:right:size:({ width: 16, height: 16 })
+		get:draw:item:environment:right:source(get:draw:value:environment)
+		get:draw:item:environment:right:update()
+		get:draw:item:environment:speed:(8 * get:draw:rate)
+		get:draw:item:environment:x:(0)
+		get:draw:item:environment:y:(0)
+		get:draw:item:environment:width:(get:draw:item:environment:left:width)
+		get:draw:item:environment:height:(get:draw:item:environment:left:height)
+		get:draw:item:environment:opposite:(get:draw:width - get:draw:item:environment:width)
+		get:draw:item:environment:update:(():{
+			get:this:y:(get:this:y + get:this:speed)
+			get:this:left:y:(get:this:y)
+			get:this:right:y:(get:this:y)
+			do:case(get:this:y >= get:this:height):{
+				get:this:y:(0)
+			}
+		})
+		get:draw:item:environment:render:(():{
+			get:draw:context:drawImage(get:this:left:canvas, get:this:x, get:this:y - get:this:height, get:this:width, get:this:height)
+			get:draw:context:drawImage(get:this:left:canvas, get:this:x, get:this:y, get:this:width, get:this:height)
+			get:draw:context:drawImage(get:this:right:canvas, get:this:opposite, get:this:y - get:this:height, get:this:width, get:this:height)
+			get:draw:context:drawImage(get:this:right:canvas, get:this:opposite, get:this:y, get:this:width, get:this:height)
+		})
+		@ PLAYER
+		get:draw:item:player:(new:Object())
+		get:draw:item:player:colorset:(get:draw:colorset())
+		get:draw:item:player:colorset:size:({ width: 4, height: 4 })
+		get:draw:item:player:colorset:source(get:draw:value:player)
+		get:draw:item:player:colorset:update()
+		get:draw:item:player:x:(get:draw:width / 2 - get:draw:item:player:colorset:width / 2)
+		get:draw:item:player:y:(get:draw:height - get:draw:item:player:colorset:height * 1.2)
+		get:draw:item:player:width:(get:draw:item:player:colorset:width)
+		get:draw:item:player:height:(get:draw:item:player:colorset:height)
+		get:draw:item:player:friction:(0.8)
+		get:draw:item:player:attack:(new:Array())
+		get:draw:item:player:color:(get:Color:DARK)
+		get:draw:item:player:velocity:({ x: 0, y: 0 })
+		get:draw:item:player:energy:(40)
+		get:draw:item:player:range:(20)
+		get:draw:item:player:update:(():{
+			get:this:x:(get:this:x + get:this:velocity:x)
+			get:this:velocity:x:(get:this:velocity:x * get:this:friction)
+			get:this:colorset:x:(get:this:x)
+			get:this:colorset:y:(get:this:y)
+		})
+		get:draw:item:player:render:(():{
+			do:foreach(get:this:attack):((value):{
+				get:value:render()
+			})
+			get:this:colorset:render()
+		})
+		@ ENEMY
+		get:draw:item:enemy:(new:Object())
+		get:draw:item:enemy:energy:(20)
+		get:draw:item:enemy:range:(200)
+		get:draw:item:enemy:type:({ range: [0], value: 0 })
+		get:draw:item:enemy:type:range:(get:draw:item:enemy:type:range:sort(():{ return:(get:Math:random() - 0.5) }))
+		get:draw:item:enemy:each:(new:Array())
+		get:draw:item:enemy:attack:(new:Array())
+		get:draw:item:enemy:create:(():{
+			set:enemy:(new:Object())
+			get:enemy:colorset:(get:draw:colorset())
+			get:enemy:colorset:id:(get:this:type:range[get:this:type:value])
+			get:enemy:colorset:size:({ width: 4, height: 4 })
+			get:enemy:colorset:source(get:draw:value:enemy)
+			get:enemy:colorset:update()
+			get:enemy:active:(false)
+			get:enemy:x:(get:Random(4 * 16, get:draw:width - get:enemy:colorset:width - 4 * 16))
+			get:enemy:y:(-get:enemy:colorset:height)
+			get:enemy:width:(get:enemy:colorset:width)
+			get:enemy:height:(get:enemy:colorset:height)
+			get:enemy:speed:(get:Math:floor(get:Math:min(4, 2 + get:draw:value:score / 4)))
+			get:enemy:energy:(get:Math:min(40, get:this:energy + get:draw:value:score * 2))
+			get:enemy:range:(200 - get:Math:floor(get:Random(80)))
+			get:enemy:id:(get:this:type:range[get:this:type:value])
+			get:enemy:color:(get:Color:DARK)
+			get:enemy:velocity:(new:Object())
+			get:enemy:velocity:x:(0)
+			get:enemy:velocity:y:(get:enemy:speed * get:draw:rate)
+			get:enemy:update:(():{
+				get:this:x:(get:this:x + get:this:velocity:x)
+				get:this:y:(get:this:y + get:this:velocity:y)
+				get:this:colorset:x:(get:this:x)
+				get:this:colorset:y:(get:this:y)
+				do:case(get:this:x < 4 * 16 || get:this:x > get:draw:width - 4 * 16):{
+					get:this:velocity:x:(-get:this:velocity:x)
+				}
+				do:case(get:this:y < -get:this:height):{
+					get:this:velocity:y:(-get:this:velocity:y)
+				}
+				do:case(get:this:y > get:this:height):{
+					get:this:active:(true)
+				}
+				do:case(get:draw:playable && get:this:active):{
+					do:case(get:draw:wait(get:this:range)):{
+						set:attack:(new:Object())
+						get:attack:x:(get:this:x + get:this:width / 2 - 20 / 2)
+						get:attack:y:(get:this:y + get:this:height / 2)
+						get:attack:width:(20)
+						get:attack:height:(40)
+						get:attack:color:(get:Color:DARK)
+						get:attack:velocity:(new:Object())
+						get:attack:velocity:x:(0)
+						get:attack:velocity:y:(12 * get:draw:rate)
+						get:attack:update:(():{
+							get:this:x:(get:this:x + get:this:velocity:x)
+							get:this:y:(get:this:y + get:this:velocity:y)
+						})
+						get:attack:render:(():{
+							get:draw:fill(get:this:color):rectangle(get:this:x, get:this:y, get:this:width, get:this:height)
+						})
+						get:draw:item:enemy:attack:push(get:attack)
+					}
+				}
+			})
+			get:enemy:render:(():{
+				do:foreach(get:draw:item:enemy:attack):((value):{
+					get:value:render()
+				})
+				get:this:colorset:render()
+			})
+			get:this:range:(get:Math:max(160, 200 - get:draw:value:score * 2))
+			get:this:each:push(get:enemy)
+		})
+		@ STATUS
+		get:draw:item:status:(new:Object())
+		get:draw:item:status:energy:(new:Array())
+		get:draw:item:status:attack:(new:Array())
+		get:draw:item:status:update:(():{
+			get:this:energy:(new:Array())
+			get:this:attack:(new:Array())
+			do:for(set:index:(0), get:index < get:draw:item:player:energy / 10, get:index++):{
+				set:item:(new:Object())
+				get:item:x:(40 + get:index * 35)
+				get:item:y:(40)
+				get:item:width:(30)
+				get:item:height:(15)
+				get:item:opacity:(0.6)
+				get:item:color:(get:Color:DARK)
+				get:this:energy:push(get:item)
+			}
+			do:for(set:index:(0), get:index < get:draw:item:player:attack:length, get:index++):{
+				set:item:(new:Object())
+				get:item:x:(40 + get:index * 25)
+				get:item:y:(30 + 20 + 10)
+				get:item:width:(20)
+				get:item:height:(10)
+				get:item:opacity:(0.4)
+				get:item:color:(get:Color:DARK)
+				get:this:attack:push(get:item)
+			}
+		})
+		get:draw:item:status:render:(():{
+			do:foreach(get:this:energy):((value):{
+				get:draw:save():opacity(get:value:opacity):fill(get:value:color):rectangle(get:value:x, get:value:y, get:value:width, get:value:height):restore()
+			})
+			do:foreach(get:this:attack):((value):{
+				get:draw:save():opacity(get:value:opacity):fill(get:value:color):rectangle(get:value:x, get:value:y, get:value:width, get:value:height):restore()
+			})
+		})
+		@ SCORE
+		get:draw:item:score:(get:draw:print())
+		get:draw:item:score:size:(6)
+		get:draw:item:score:opacity:(0.6)
+		get:draw:item:score:value:(new:String(get:draw:value:score):valueOf())
+		get:draw:item:score:update()
+		@ INFORMATION
+		get:draw:item:information:(new:Object())
+		get:draw:item:information:text:(get:draw:print())
+		get:draw:item:information:text:size:(6)
+		get:draw:item:information:text:color:(get:Color:DARK)
+		get:draw:item:information:score:(get:draw:print())
+		get:draw:item:information:score:size:(4)
+		get:draw:item:information:score:color:(get:Color:SHADOW)
+		get:draw:item:information:award:(get:draw:print())
+		get:draw:item:information:award:size:(4)
+		get:draw:item:information:award:color:(get:Color:DARK)
+		get:draw:item:information:background:(get:Color:WHITE)
+		get:draw:item:information:type:({ gameover: false })
+		get:draw:item:information:opacity:(1)
+		get:draw:item:information:render:(():{
+			get:draw:save():opacity(get:this:opacity):fill(get:this:background):rectangle(0, 0, get:draw:width, get:draw:height):restore()
+		})
+		@ AD
+		get:draw:ad:count:(get:draw:ad:count + 1)
+		get:draw:ad:close:(():{
+			get:draw:ad:preload()
+			get:draw:value:cursor:(0)
+			get:draw:open(get:App:source:menu)
+		})
+	})
+	get:this:input:(():{
+		@ INPUT
+		get:draw:input:menu:(false)
+		get:draw:input:attack:(false)
+		get:draw:input:left:(false)
+		get:draw:input:right:(false)
+		get:draw:input:up:(false)
+		get:draw:input:down:(false)
+		@ PLAYABLE
+		do:case(get:draw:playable):{
+			@ KEY
+			do:foreach(get:draw:input:key:each):((key):{
+				do:case(get:key:active):{
+					do:case(get:key:id == 27 || get:key:id == 8):{
+						get:draw:input:menu:(true)
+					}
+					do:case(get:key:id == 13 || get:key:id == 53):{
+						get:draw:input:attack:(true)
+					}
+					do:case(get:key:id == 37 || get:key:id == 52):{
+						get:draw:input:left:(true)
+					}
+					do:case(get:key:id == 39 || get:key:id == 54):{
+						get:draw:input:right:(true)
+					}
+					get:draw:touchable:(false)
+				}
+			})
+			@ PAD
+			do:foreach(get:draw:input:pad:each):((pad):{
+				do:case(get:pad:active):{
+					do:foreach(get:pad:axe):((axe):{
+						do:case(get:axe:active):{
+							do:case(get:axe:id == 2 || get:axe:id == 10):{
+								get:draw:input:left:(true)
+							}
+							do:case(get:axe:id == 0 || get:axe:id == 8):{
+								get:draw:input:right:(true)
+							}
+							get:draw:touchable:(false)
+						}
+					})
+					do:foreach(get:pad:button):((button):{
+						do:case(get:button:active):{
+							do:case(get:button:id == 1):{
+								get:draw:input:attack:(true)
+							}
+							do:case(get:button:id == 9):{
+								get:draw:input:menu:(true)
+								get:button:active:(false)
+							}
+							get:draw:touchable:(false)
+						}
+					})
+				}
+			})
+			@ ATTACK
+			do:case(get:draw:input:attack):{
+				do:case(get:draw:wait(get:draw:item:player:range)):{
+					set:attack:(new:Object())
+					get:attack:x:(get:draw:item:player:x + get:draw:item:player:width / 2 - 20 / 2)
+					get:attack:y:(get:draw:item:player:y - 40 / 2)
+					get:attack:width:(20)
+					get:attack:height:(40)
+					get:attack:color:(get:Color:DARK)
+					get:attack:velocity:(new:Object())
+					get:attack:velocity:x:(0)
+					get:attack:velocity:y:(-10 * get:draw:rate)
+					get:attack:update:(():{
+						get:this:x:(get:this:x + get:this:velocity:x)
+						get:this:y:(get:this:y + get:this:velocity:y)
+					})
+					get:attack:render:(():{
+						get:draw:fill(get:this:color):rectangle(get:this:x, get:this:y, get:this:width, get:this:height)
+					})
+					get:draw:item:player:attack:push(get:attack)
+				}
+			}
+			@ MOVE
+			do:case(get:draw:input:right):{
+				get:draw:item:player:velocity:x:(get:draw:item:player:velocity:x + get:draw:rate)
+			}
+			do:case(get:draw:input:left):{
+				get:draw:item:player:velocity:x:(get:draw:item:player:velocity:x - get:draw:rate)
+			}
+		}
+		@ MENU
+		do:case(get:draw:input:menu):{
+			get:draw:open(get:App:source:menu)
+		}
+	})
+	get:this:update:(():{
+		@ INITIALIZE
+		do:case(get:draw:initialize && get:draw:playable == false):{
+			get:draw:item:information:background:(get:Color:PRIMARY)
+			get:draw:item:information:opacity:(get:draw:item:information:opacity - 0.04)
+			do:case(get:draw:item:information:opacity < 0.04):{
+				get:draw:initialize:(false)
+				get:draw:playable:(true)
+			}
+		}
+		@ CAMERA
+		get:draw:camera(get:draw:item:player)
+		@ ALIGNMENT
+		get:draw:top(get:draw:item:score, 40)
+		get:draw:right(get:draw:item:score, get:draw:item:score:width + 40)
+		get:draw:center(get:draw:item:information:text)
+		get:draw:center(get:draw:item:information:score)
+		get:draw:top(get:draw:item:information:score, get:draw:item:information:text:y + 40 * 2)
+		get:draw:center(get:draw:item:information:award)
+		get:draw:bottom(get:draw:item:information:award, 40 * 2)
+		@ ENVIRONMENT
+		get:draw:item:environment:update()
+		@ STATUS
+		get:draw:item:status:update()
+		@ PLAYER
+		get:draw:item:player:update()
+		@ ENEMY
+		do:case(get:draw:playable && get:draw:item:enemy:each:length < 4):{
+			do:case(get:draw:wait(get:draw:item:enemy:range)):{
+				do:case(get:draw:item:enemy:type:value < get:draw:item:enemy:type:range:length - 1):{
+					get:draw:item:enemy:type:value:(get:draw:item:enemy:type:value + 1)
+				}:default:{
+					get:draw:item:enemy:type:value:(0)
+				}
+				get:draw:item:enemy:create()
+			}
+		}
+		do:foreach(get:draw:item:enemy:each):((value, index, array):{
+			get:value:update()
+			do:case(get:draw:intersection(get:value, get:draw:item:player)):{
+				get:draw:item:player:energy:(-get:draw:item:player:energy)
+			}
+			do:case(get:value:y > get:draw:height):{
+				get:array:splice(get:index, 1)
+			}
+		})
+		@ ATTACK
+		do:foreach(get:draw:item:player:attack):((value, index, array):{
+			get:value:update()
+			do:foreach(get:draw:item:enemy:each):((enemy, position, attack):{
+				do:case(get:draw:intersection(get:value, get:enemy)):{
+					get:enemy:energy:(get:enemy:energy - 10)
+					get:array:splice(get:index, 1)
+				}
+				do:case(get:enemy:energy <= 0):{
+					get:attack:splice(get:position, 1)
+					get:draw:value:score:(get:draw:value:score + 1)
+					get:draw:item:score:value:(new:String(get:draw:value:score):valueOf())
+					get:draw:item:score:update()
+					do:case(get:draw:value:score > get:Number(get:Cache:get("ragecore//score"))):{
+						get:Cache:set("ragecore//score", get:draw:value:score)
+					}
+				}
+			})
+			do:case(get:value:y + get:value:height < 0):{
+				get:array:splice(get:index, 1)
+			}
+		})
+		do:foreach(get:draw:item:enemy:attack):((value, index, array):{
+			get:value:update()
+			do:case(get:draw:intersection(get:value, get:draw:item:player)):{
+				get:draw:item:player:energy:(get:draw:item:player:energy - 10)
+				get:array:splice(get:index, 1)
+			}
+			do:case(get:value:y > get:draw:height):{
+				get:array:splice(get:index, 1)
+			}
+		})
+		@ DEATH
+		do:case(get:draw:item:player:x < 4 * 16):{
+			get:draw:item:information:type:gameover:(true)
+		}
+		do:case(get:draw:item:player:x > get:draw:width - get:draw:item:player:width - 4 * 16):{
+			get:draw:item:information:type:gameover:(true)
+		}
+		do:case(get:draw:item:player:energy <= 0):{
+			get:draw:item:information:type:gameover:(true)
+		}
+		@ GAMEOVER
+		do:case(get:draw:item:information:type:gameover):{
+			get:draw:frame:(0)
+			get:draw:playable:(false)
+			get:draw:item:information:background:(get:Color:SILVER)
+			get:draw:item:information:text:value:("GAMEOVER")
+			get:draw:item:information:text:update()
+			get:draw:item:information:score:value:("SCORE:" + get:Type:SPACE + get:draw:value:score)
+			get:draw:item:information:score:update()
+			get:draw:item:information:award:value:("HIGH SCORE:" + get:Type:SPACE + get:Cache:get("ragecore//score"))
+			get:draw:item:information:award:update()
+			do:case(get:draw:item:information:opacity < 2):{
+				get:draw:item:information:opacity:(get:draw:item:information:opacity + 0.04)
+			}:default:{
+				get:draw:item:information:type:timeout:(false)
+				get:draw:item:information:type:gameover:(false)
+				do:case(get:draw:ad:count % 1 == 0):{
+					get:draw:ad:publish()
+					do:case(get:draw:ad:active == false):{ get:this:create() }
+				}:default:{
+					get:this:create()
+				}
+			}
+		}
+		@ PREPARE
+		get:draw:each:(new:Array())
+		get:draw:each:push(get:draw:item:background)
+		get:draw:each:push(get:draw:item:environment)
+		get:draw:each:push(get:draw:item:player)
+		do:foreach(get:draw:item:enemy:each):((value):{
+			get:draw:each:push(get:value)
+		})
+		do:case(get:draw:playable):{
+			get:draw:each:push(get:draw:item:status)
+			get:draw:each:push(get:draw:item:score)
+		}
+		do:case(get:draw:playable == false):{
+			get:draw:each:push(get:draw:item:information)
+			get:draw:each:push(get:draw:item:information:text)
+			get:draw:each:push(get:draw:item:information:score)
+			get:draw:each:push(get:draw:item:information:award)
+		}
+	})
+    get:this:render:(():{
+		@ CLEAR
+		get:draw:clear()
+		@ RENDER
+		do:foreach(get:draw:each):((value):{
+			do:case(get:value && get:value:render):{
+				get:value:render()
+			}
+		})
+    })
+})
